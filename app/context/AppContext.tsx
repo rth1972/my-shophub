@@ -81,6 +81,36 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
+// LocalStorage helper functions
+const CART_STORAGE_KEY = 'shopping_cart';
+
+const cartStorage = {
+  getCart: (): CartItem[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const cart = localStorage.getItem(CART_STORAGE_KEY);
+      return cart ? JSON.parse(cart) : [];
+    } catch (error) {
+      console.error('Error reading cart from localStorage:', error);
+      return [];
+    }
+  },
+
+  saveCart: (cart: CartItem[]): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  },
+
+  clearCart: (): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(CART_STORAGE_KEY);
+  },
+};
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -94,7 +124,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [showOrders, setShowOrders] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
   const router = useRouter();
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const localCart = cartStorage.getCart();
+    setCart(localCart);
+    setIsCartLoaded(true);
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (isCartLoaded) {
+      cartStorage.saveCart(cart);
+    }
+  }, [cart, isCartLoaded]);
 
   useEffect(() => {
     fetchProducts();
@@ -108,10 +153,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-        fetchCart(data.user.customer_id);
+        // Merge local cart with database cart on login
+        await mergeCartOnLogin(data.user.customer_id);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+    }
+  };
+
+  // Merge localStorage cart with database cart when user logs in
+  const mergeCartOnLogin = async (customerId: number) => {
+    try {
+      const localCart = cartStorage.getCart();
+      
+      // If there's a local cart, sync it to the database
+      if (localCart.length > 0) {
+        const response = await fetch('/api/cart/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: customerId,
+            cart: localCart
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCart(data.cart || localCart);
+          cartStorage.saveCart(data.cart || localCart);
+        }
+      } else {
+        // No local cart, fetch from database
+        await fetchCartFromDatabase(customerId);
+      }
+    } catch (error) {
+      console.error('Error merging cart:', error);
+    }
+  };
+
+  const fetchCartFromDatabase = async (customerId: number) => {
+    try {
+      const response = await fetch(`/api/cart?customer_id=${customerId}`);
+      const data = await response.json();
+      const dbCart = data.cart || [];
+      setCart(dbCart);
+      cartStorage.saveCart(dbCart);
+    } catch (error) {
+      console.error('Error fetching cart from database:', error);
     }
   };
 
@@ -135,19 +223,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const fetchCart = async (customerId: number) => {
-    try {
-      const response = await fetch(`/api/cart?customer_id=${customerId}`);
-      const data = await response.json();
-      setCart(data.cart || []);
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    }
-  };
-
   const clearCart = async () => {
     try {
       setCart([]);
+      cartStorage.clearCart();
+      
+      // Also clear database cart if user is logged in
+      if (user) {
+        await fetch('/api/cart/clear', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customer_id: user.customer_id })
+        });
+      }
     } catch (error) {
       console.error('Error clearing cart:', error);
     }
@@ -166,13 +254,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (response.ok) {
         setUser(data.user);
         setIsAuthOpen(false);
-        fetchCart(data.user.customer_id);
+        
+        // Merge carts on login
+        await mergeCartOnLogin(data.user.customer_id);
+        
         router.push('/');
+        toast.success('Login successful!');
       } else {
-        alert(data.error || 'Login failed');
+        toast.error(data.error || 'Login failed');
       }
     } catch (error: any) {
-      alert('Login error: ' + error.message);
+      toast.error('Login error: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -189,12 +281,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       const data = await response.json();
       if (response.ok) {
-        alert('Registration successful! Please login.');
+        toast.success('Registration successful! Please login.');
       } else {
-        alert(data.error || 'Registration failed');
+        toast.error(data.error || 'Registration failed');
       }
     } catch (error: any) {
-      alert('Registration error: ' + error.message);
+      toast.error('Registration error: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -204,81 +296,55 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
-      setCart([]);
+      
+      // Keep cart in localStorage for guest browsing
+      // Don't clear it - let them continue shopping as guest
+      
       router.push('/');
+      toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
   const addToCart = async (product: Product) => {
-    if (!user) {
-      //alert('Please login to add items to cart');
-      toast.custom((t) => (
-  <div
-    className={`${
-      t.visible ? 'animate-custom-enter' : 'animate-custom-leave'
-    }  w-full bg-[#333] text-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 custom`}
-  >
-    <div className="flex-1 w-0 p-4">
-      <div className="flex items-start">
-        <div className="flex-shrink-0 pt-0.5">
-          <img
-            className="h-10 w-10 rounded-full"
-            src="/logo.png"
-            alt=""
-          />
-        </div>
-        <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-gray-900">
-            Carol's Closet
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            To add something to your cart, you have to login first!
-          </p>
-        </div>
-      </div>
-    </div>
-    <div className="flex border-l border-gray-200">
-      <button
-        onClick={() => toast.dismiss(t.id)}
-        className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      >
-        Close
-      </button>
-    </div>
-  </div>
-),
-  {
-    icon: '👏',
-    style: {
-      borderRadius: '10px',
-      background: '#333',
-      color: '#fff',
-    },
-  })
+    const cartItem: CartItem = {
+      product_id: product.product_id,
+      product_name: product.product_name,
+      price: product.price,
+      quantity: 1,
+      image_url: product.image_url
+    };
 
-      setIsAuthOpen(false);
-      return;
+    // Add to local cart
+    const existingIndex = cart.findIndex(item => item.product_id === product.product_id);
+    let updatedCart: CartItem[];
+
+    if (existingIndex > -1) {
+      updatedCart = [...cart];
+      updatedCart[existingIndex].quantity += 1;
+    } else {
+      updatedCart = [...cart, cartItem];
     }
 
-    try {
-      const response = await fetch('/api/cart/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: user.customer_id,
-          product_id: product.product_id,
-          quantity: 1
-        })
-      });
+    setCart(updatedCart);
+    toast.success('Product added to shopping cart');
 
-      if (response.ok) {
-        await fetchCart(user.customer_id);
-        toast.success('Product added to shopping cart');
+    // If user is logged in, sync to database
+    if (user) {
+      try {
+        await fetch('/api/cart/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: user.customer_id,
+            product_id: product.product_id,
+            quantity: 1
+          })
+        });
+      } catch (error) {
+        console.error('Error syncing cart to database:', error);
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
     }
   };
 
@@ -317,62 +383,67 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateQuantity = async (productId: number, delta: number) => {
-    if (!user) return;
+    const itemIndex = cart.findIndex(c => c.product_id === productId);
+    if (itemIndex === -1) return;
 
-    const item = cart.find(c => c.product_id === productId);
-    if (!item) return;
-
-    const newQuantity = item.quantity + delta;
+    const newQuantity = cart[itemIndex].quantity + delta;
 
     if (newQuantity <= 0) {
       removeFromCart(productId);
       return;
     }
 
-    try {
-      const response = await fetch('/api/cart/update', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: user.customer_id,
-          product_id: productId,
-          quantity: newQuantity
-        })
-      });
+    // Update local cart
+    const updatedCart = [...cart];
+    updatedCart[itemIndex].quantity = newQuantity;
+    setCart(updatedCart);
 
-      if (response.ok) {
-        fetchCart(user.customer_id);
+    // If user is logged in, sync to database
+    if (user) {
+      try {
+        await fetch('/api/cart/update', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: user.customer_id,
+            product_id: productId,
+            quantity: newQuantity
+          })
+        });
+      } catch (error) {
+        console.error('Error syncing cart to database:', error);
       }
-    } catch (error) {
-      console.error('Error updating cart:', error);
     }
   };
 
   const removeFromCart = async (productId: number) => {
-    if (!user) return;
+    // Remove from local cart
+    const updatedCart = cart.filter(item => item.product_id !== productId);
+    setCart(updatedCart);
+    toast.success('Item removed from cart');
 
-    try {
-      const response = await fetch('/api/cart/remove', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: user.customer_id,
-          product_id: productId
-        })
-      });
-
-      if (response.ok) {
-        fetchCart(user.customer_id);
+    // If user is logged in, sync to database
+    if (user) {
+      try {
+        await fetch('/api/cart/remove', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: user.customer_id,
+            product_id: productId
+          })
+        });
+      } catch (error) {
+        console.error('Error syncing cart to database:', error);
       }
-    } catch (error) {
-      console.error('Error removing from cart:', error);
     }
   };
 
   const handleCheckout = () => {
     if (!user) {
-      alert('Please login to checkout');
+      toast.error('Please login to checkout');
       setIsAuthOpen(true);
+      setIsCartOpen(false);
       return;
     }
     setIsCheckout(true);
@@ -409,14 +480,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const orderData = await orderResponse.json();
 
       if (orderResponse.ok) {
-        alert(`Order #${orderData.order_id} placed successfully!`);
-        setCart([]);
+        toast.success(`Order #${orderData.order_id} placed successfully!`);
+        clearCart();
         setIsCheckout(false);
       } else {
-        alert(orderData.error || 'Order failed');
+        toast.error(orderData.error || 'Order failed');
       }
     } catch (error: any) {
-      alert('Order error: ' + error.message);
+      toast.error('Order error: ' + error.message);
     } finally {
       setLoading(false);
     }
