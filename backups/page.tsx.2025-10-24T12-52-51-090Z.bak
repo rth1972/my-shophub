@@ -1,0 +1,40 @@
+import React from 'react';
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import { logoutUser } from '../actions/userActions';
+
+const Header = () => {
+  const dispatch = useDispatch();
+  let navigate = useNavigate();
+  
+  const userLogin = useSelector(state => state.userLogin);
+  const { userInfo } = userLogin;
+
+  const logoutHandler = () => {
+    dispatch(logoutUser());
+    navigate('/');
+  };
+
+  return (
+    <header>
+      <div className="container">
+        <div className="row align-items-center justify-content-between">
+          <div className="col-md-4">
+            <a href="/"><img src={require('../images/logo.png')} alt="" /></a>
+          </div>
+          {userInfo && (
+            <div className="col-md-8">
+              <ul className="nav justify-content-end">
+                <li className="nav-item">
+                  <button onClick={logoutHandler} className="nav-link">Logout</button>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;

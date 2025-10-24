@@ -9,7 +9,7 @@ const Footer = () => {
     <footer className="overflow-hidden">
       <div className="max-w-[1170px] mx-auto px-4 py-8 sm:px-8 xl:px-0">
         {/* <!-- footer menu start --> */}
-        <div className="flex flex-wrap xl:flex-nowrap gap-10 xl:gap-19 xl:justify-between pb-10 xl:pb-15">
+        <div className="flex flex-wrap xl:flex-nowrap gap-10 xl:gap-19 justify-between pb-10 xl:pb-15">
           <div className="max-w-[330px] w-full">
             <h2 className="mb-7.5 text-custom-1 font-medium text-dark">
               Help & Support

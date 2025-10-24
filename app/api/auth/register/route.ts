@@ -1,12 +1,18 @@
 // ============================================
-// FILE: app/api/auth/register/route.js
+// FILE: app/api/auth/register/route.ts
 // User registration
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
+import type { ResultSetHeader } from 'mysql2';
 
-export async function POST(request) {
+interface CustomerRow {
+  customer_id: string;
+  email: string;
+}
+
+export async function POST(request: NextRequest) {
   try {
     const { firstName, lastName, email, password, phone } = await request.json();
 
@@ -19,10 +25,11 @@ export async function POST(request) {
     }
 
     // Check if user already exists
-    const [existingUsers] = await pool.query(
-      'SELECT * FROM customers WHERE email = ?',
+    const [rawRows] = await pool.query(
+      'SELECT customer_id, email FROM customers WHERE email = ?',
       [email]
     );
+    const existingUsers = rawRows as CustomerRow[];
 
     if (existingUsers.length > 0) {
       return NextResponse.json(
@@ -35,16 +42,18 @@ export async function POST(request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
-    const [result] = await pool.query(
+    const [insertResult] = await pool.query(
       `INSERT INTO customers (first_name, last_name, email, password_hash, phone) 
        VALUES (?, ?, ?, ?, ?)`,
       [firstName, lastName, email, hashedPassword, phone || null]
     );
 
+    const result = insertResult as ResultSetHeader;
+
     return NextResponse.json(
-      { 
+      {
         message: 'User registered successfully',
-        customer_id: result.insertId
+        customer_id: result.insertId,
       },
       { status: 201 }
     );

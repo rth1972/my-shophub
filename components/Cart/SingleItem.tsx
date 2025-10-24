@@ -1,10 +1,22 @@
 import React, { useState } from "react";
 import { useAppContext } from '@/app/context/AppContext';
-
-
 import Image from "next/image";
 
-const SingleItem = ({ item }) => {
+
+interface CartItem {
+  product_id: number;
+  product_name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+  // Add any other properties your cart item has
+}
+
+interface SingleItemProps {
+  item: CartItem;
+}
+
+const SingleItem = ({ item }: SingleItemProps) => {
     const {
      products,
     categories,
@@ -42,7 +54,7 @@ const SingleItem = ({ item }) => {
         <div className="flex items-center justify-between gap-5">
           <div className="w-full flex items-center gap-5.5">
             <div className="flex items-center justify-center rounded-[5px] bg-gray-2 max-w-[80px] w-full h-17.5">
-              <Image width={200} height={200} src={item.image_url} alt="product" />
+              <Image width={200} height={200} src={item.image_url || '/images/placeholder.png'} alt="product" />
             </div>
 
             <div>

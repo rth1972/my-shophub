@@ -1,11 +1,15 @@
 // ============================================
-// FILE: app/api/cart/add/route.js
+// FILE: app/api/cart/add/route.ts
 // Add item to cart
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
 
-export async function POST(request) {
+interface ProductRow {
+  stock_quantity: number;
+}
+
+export async function POST(request: NextRequest) {
   try {
     const { customer_id, product_id, quantity } = await request.json();
 
@@ -17,10 +21,11 @@ export async function POST(request) {
     }
 
     // Check if product exists and has stock
-    const [products] = await pool.query(
+    const [rawRows] = await pool.query(
       'SELECT stock_quantity FROM products WHERE product_id = ?',
       [product_id]
     );
+    const products = rawRows as ProductRow[];
 
     if (products.length === 0) {
       return NextResponse.json(

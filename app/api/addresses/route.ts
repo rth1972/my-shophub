@@ -2,10 +2,11 @@
 // FILE: app/api/addresses/route.js
 // Create address
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import type { ResultSetHeader } from 'mysql2';
 import pool from '@/lib/db';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const { 
       customer_id, 
@@ -17,7 +18,7 @@ export async function POST(request) {
       country 
     } = await request.json();
 
-    const [result] = await pool.query(
+    const [result]: [ResultSetHeader, any] = await pool.query(
       `INSERT INTO addresses (customer_id, address_type, street_address, city, state, zip_code, country) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [customer_id, address_type, streetAddress, city, state, zipCode, country || 'USA']

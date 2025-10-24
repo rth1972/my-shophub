@@ -2,15 +2,34 @@
 import { X, Plus, Minus, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+interface CartItem {
+  product_id: number;
+  product_name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+  // Add other properties as needed
+}
+
+interface CartSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+   onCheckout: () => void; // Add this line
+  total: number;
+  cart: CartItem[];
+  onUpdateQuantity: (productId: number, quantity: number) => void;
+  onRemoveItem: (productId: number) => void;
+}
+
 function CartSidebar({ 
   isOpen, 
   onClose, 
   cart, 
   onUpdateQuantity, 
   onRemoveItem,
-  onCheckout,
   total 
-}) {
+}: CartSidebarProps) {
   if (!isOpen) return null;
 const router = useRouter();
 

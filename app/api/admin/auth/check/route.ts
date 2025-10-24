@@ -2,9 +2,9 @@
 // FILE: app/api/admin/auth/check/route.js
 // Check if admin is authenticated
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export async function GET(request) {
+export async function GET(request:NextRequest) {
   try {
     const token = request.cookies.get('admin_token')?.value;
 

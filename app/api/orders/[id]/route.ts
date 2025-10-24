@@ -1,15 +1,42 @@
 // ============================================
-// FILE: app/api/orders/[id]/route.js
+// FILE: app/api/orders/[id]/route.ts
 // Get single order details
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
 
-export async function GET(request, { params }) {
-  try {
-    const { id } = params;
+interface OrderRow {
+  order_id: string;
+  customer_id: string;
+  order_date: string;
+  total_amount: number;
+  status: string;
+  customer_name: string;
+  email: string;
+  shipping_street: string;
+  shipping_city: string;
+  shipping_state: string;
+  shipping_zip: string;
+}
 
-    const [orders] = await pool.query(
+interface OrderItemRow {
+  order_item_id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  product_name: string;
+  image_url: string;
+}
+
+export async function GET(
+  request: NextRequest,
+context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+
+    const [orderRows] = await pool.query(
       `SELECT o.*, 
               CONCAT(c.first_name, ' ', c.last_name) as customer_name,
               c.email,
@@ -24,6 +51,8 @@ export async function GET(request, { params }) {
       [id]
     );
 
+    const orders = orderRows as OrderRow[];
+
     if (orders.length === 0) {
       return NextResponse.json(
         { error: 'Order not found' },
@@ -31,7 +60,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const [items] = await pool.query(
+    const [itemRows] = await pool.query(
       `SELECT oi.*, p.product_name, p.image_url
        FROM order_items oi
        JOIN products p ON oi.product_id = p.product_id
@@ -39,9 +68,11 @@ export async function GET(request, { params }) {
       [id]
     );
 
-    return NextResponse.json({ 
+    const items = itemRows as OrderItemRow[];
+
+    return NextResponse.json({
       order: orders[0],
-      items 
+      items,
     });
   } catch (error) {
     console.error('Error fetching order:', error);

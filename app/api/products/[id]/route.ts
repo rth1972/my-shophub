@@ -2,14 +2,16 @@
 // FILE: app/api/products/[id]/route.js
 // Get single product by ID
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
+import type { RowDataPacket } from 'mysql2';
 
-export async function GET(request, { params }) {
+export async function GET(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
-    const [products] = await pool.query(
+    const [products] = await pool.query<RowDataPacket[]>(
       `SELECT p.*, c.category_name 
        FROM products p 
        LEFT JOIN categories c ON p.category_id = c.category_id 

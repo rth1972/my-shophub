@@ -2,7 +2,12 @@ import Link from "next/link";
 import React from "react";
 import { House } from 'lucide-react';
 
-const Breadcrumb = ({ title, pages }) => {
+interface BreadcrumbProps {
+  title: string;
+  pages: string[];
+}
+
+const Breadcrumb = ({ title, pages }:BreadcrumbProps) => {
   return (
     <div className="overflow-hidden shadow-breadcrumb">
       {/*<div className="border-t border-gray-3">*/}

@@ -1,46 +1,45 @@
 // ============================================
-// FILE: app/api/orders/create/route.js
-// Create order from cart
+// FILE: app/api/orders/create/route.ts
+// Create a new order
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const connection = await pool.getConnection();
-  
+
   try {
+    const { customer_id, shipping_address_id, items } = await request.json();
+
+    if (!customer_id || !shipping_address_id || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
     await connection.beginTransaction();
 
-    const { 
-      customer_id, 
-      shipping_address_id, 
-      billing_address_id, 
-      payment_method 
-    } = await request.json();
-
-    // Use stored procedure to create order
-    const [result] = await connection.query(
-      'CALL sp_create_order_from_cart(?, ?, ?, ?, @order_id)',
-      [customer_id, shipping_address_id, billing_address_id, payment_method]
+    const [orderResult] = await connection.query(
+      `INSERT INTO orders (customer_id, shipping_address_id, order_date, status)
+       VALUES (?, ?, NOW(), 'pending')`,
+      [customer_id, shipping_address_id]
     );
 
-    // Get the order_id from the OUT parameter
-    const [orderIdResult] = await connection.query('SELECT @order_id as order_id');
-    const orderId = orderIdResult[0].order_id;
+    const orderId = (orderResult as any).insertId;
+
+    for (const item of items) {
+      const { product_id, quantity, unit_price } = item;
+      await connection.query(
+        `INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+         VALUES (?, ?, ?, ?)`,
+        [orderId, product_id, quantity, unit_price]
+      );
+    }
 
     await connection.commit();
-
-    return NextResponse.json({ 
-      message: 'Order created successfully',
-      order_id: orderId
-    });
+    return NextResponse.json({ message: 'Order created successfully', order_id: orderId }, { status: 201 });
   } catch (error) {
     await connection.rollback();
     console.error('Error creating order:', error);
-    return NextResponse.json(
-      { error: 'Failed to create order' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   } finally {
     connection.release();
   }

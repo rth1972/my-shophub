@@ -9,7 +9,7 @@ import { useAppContext } from '@/app/context/AppContext';
 
 // 2. Removed Redux and PreviewSlider imports
 
-const QuickViewModal = ({onAddToCart}) => {
+const QuickViewModal = () => {
   // 3. Use the modalContent from the context instead of Redux
   const { isModalOpen, closeModal, modalContent } = useModalContext();
 

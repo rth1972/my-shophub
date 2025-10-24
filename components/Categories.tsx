@@ -1,6 +1,7 @@
 "use client";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useRef, useEffect } from "react";
+import { useAppContext } from '@/app/context/AppContext';
 // Remove: import data from "./categoryData"; // Data will now be passed as a prop
 import Image from "next/image";
 
@@ -9,24 +10,39 @@ import "swiper/css/navigation";
 import "swiper/css";
 import SingleItem from "./SingleItem";
 
-// 1. Define the TypeScript interface for your category data structure
-// Assuming your category data looks like: { id: number, title: string, icon: string, ... }
-interface Category {
-  category_id: number;
-  category_name: string;
-  image:string;
-  // Add other properties from your categoryData structure here (e.g., icon, slug, etc.)
-  [key: string]: any; // Use this line if the structure is very flexible/unknown
-}
-
-// 2. Define the TypeScript interface for the component's props
-interface CategoriesProps {
-  categories: Category[];
-  selectedCategory: string | null; // Assuming selectedCategory is a string (e.g., category ID or slug) or null
-}
-
 // 3. Update the component signature to accept the props
-const Categories = ({ categories }: CategoriesProps) => {
+const Categories = () => {
+     const {
+     products,
+    categories,
+    cart,
+    user,
+    orders,
+    filteredProducts,
+    isCartOpen,
+    isAuthOpen,
+    isCheckout,
+    showOrders,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    setIsCartOpen,
+    setIsAuthOpen,
+    setIsCheckout,
+    setShowOrders,
+    handleLogin,
+    handleRegister,
+    handleLogout,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    handleCheckout,
+    handleSubmitOrder,
+    fetchOrders,
+    getCartTotal,
+    getCartCount,
+  } = useAppContext();
+  
   const sliderRef = useRef<any>(null); // Use 'any' for the ref since Swiper adds complex properties
 
   // NOTE: You might need to adjust the swiper.slidePrev/Next() based on the exact Swiper instance structure

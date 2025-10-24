@@ -2,17 +2,18 @@
 // UPDATED: app/api/admin/products/route.js
 // Add authentication check
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import pool from '@/lib/db';
 import { checkAdminAuth } from '@/lib/adminAuth';
+import type { ResultSetHeader } from 'mysql2';
 
-export async function GET(request) {
+export async function GET(request:NextRequest) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const [products] = await pool.query(`
+    const [products] = await pool.query<ResultSetHeader>(`
       SELECT p.*, c.category_name 
       FROM products p 
       LEFT JOIN categories c ON p.category_id = c.category_id 
@@ -25,7 +26,7 @@ export async function GET(request) {
   }
 }
 
-export async function POST(request) {
+export async function POST(request:NextRequest) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -34,7 +35,7 @@ export async function POST(request) {
     const data = await request.json();
     const { product_name, description, category_id, price, cost_price, stock_quantity, sku, image_url } = data;
 
-    const [result] = await pool.query(
+    const [result] = await pool.query<ResultSetHeader>(
       `INSERT INTO products (product_name, description, category_id, price, cost_price, stock_quantity, sku, image_url) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [product_name, description, category_id, price, cost_price || null, stock_quantity, sku, image_url]

@@ -1,44 +1,51 @@
 // ============================================
-// FILE: app/api/auth/me/route.js
+// FILE: app/api/auth/me/route.ts
 // Get current user
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
+import type { JwtPayload } from 'jsonwebtoken';
 import pool from '@/lib/db';
 
-export async function GET(request) {
+interface UserRow {
+  customer_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('auth_token')?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
-    // Get user data
-    const [users] = await pool.query(
-      'SELECT customer_id, first_name, last_name, email, phone FROM customers WHERE customer_id = ? AND is_active = TRUE',
-      [decoded.customer_id]
-    );
-
-    if (users.length === 0) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+    if (typeof decoded === 'string' || !('customer_id' in decoded)) {
+      return NextResponse.json({ error: 'Invalid token payload' }, { status: 401 });
     }
 
-    return NextResponse.json({ user: users[0] });
+    const customerId = (decoded as JwtPayload).customer_id;
+
+    const [rawRows] = await pool.query(
+  'SELECT customer_id, first_name, last_name, email, phone FROM customers WHERE customer_id = ? AND is_active = TRUE',
+  [customerId]
+);
+
+const rows = rawRows as UserRow[];
+
+if (rows.length === 0) {
+  return NextResponse.json({ error: 'User not found' }, { status: 404 });
+}
+
+return NextResponse.json({ user: rows[0] });
+
   } catch (error) {
     console.error('Auth check error:', error);
-    return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
   }
 }

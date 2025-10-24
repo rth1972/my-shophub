@@ -1,23 +1,29 @@
 // ============================================
-// FILE: app/api/orders/route.js
+// FILE: app/api/orders/route.ts
 // Get customer orders
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-export async function GET(request) {
+interface OrderSummary {
+  order_id: string;
+  customer_id: string;
+  order_date: string;
+  status: string;
+  total_amount: number;
+  items_count: number;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customer_id');
 
     if (!customerId) {
-      return NextResponse.json(
-        { error: 'Customer ID required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Customer ID required' }, { status: 400 });
     }
 
-    const [orders] = await pool.query(
+    const [rawRows] = await pool.query(
       `SELECT o.*, COUNT(oi.order_item_id) as items_count
        FROM orders o
        LEFT JOIN order_items oi ON o.order_id = oi.order_id
@@ -27,12 +33,11 @@ export async function GET(request) {
       [customerId]
     );
 
+    const orders = rawRows as OrderSummary[];
+
     return NextResponse.json({ orders });
   } catch (error) {
     console.error('Error fetching orders:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }

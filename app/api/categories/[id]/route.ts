@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db'; // Ensure this path is correct for your database pool
 
 export async function GET(
-  request: Request, 
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Explicitly resolve params in an async context to satisfy the Next.js runtime check
   const resolvedParams = await Promise.resolve(params);

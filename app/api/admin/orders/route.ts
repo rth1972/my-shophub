@@ -2,11 +2,11 @@
 // UPDATED: app/api/admin/orders/route.js
 // Add authentication check
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import pool from '@/lib/db';
 import { checkAdminAuth } from '@/lib/adminAuth';
 
-export async function GET(request) {
+export async function GET(request:NextRequest) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

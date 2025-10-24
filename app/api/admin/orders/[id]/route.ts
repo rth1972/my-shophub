@@ -2,17 +2,18 @@
 // UPDATED: app/api/admin/orders/[id]/route.js
 // Add authentication check
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import pool from '@/lib/db';
 import { checkAdminAuth } from '@/lib/adminAuth';
 
-export async function PUT(request, { params }) {
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const { status } = await request.json();
 
     await pool.query('UPDATE orders SET status = ? WHERE order_id = ?', [status, id]);

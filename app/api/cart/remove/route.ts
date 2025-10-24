@@ -1,11 +1,11 @@
 // ============================================
-// FILE: app/api/cart/remove/route.js
+// FILE: app/api/cart/remove/route.ts
 // Remove item from cart
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
 
-export async function DELETE(request) {
+export async function DELETE(request: NextRequest) {
   try {
     const { customer_id, product_id } = await request.json();
 

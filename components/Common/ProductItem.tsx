@@ -7,7 +7,26 @@ import { useModalContext } from "@/app/context/QuickViewModalContext";
 
 // Define the structure of your 'item' prop if you have a Product type
 // const ProductItem = ({ item }: { item: Product }) => {
-const ProductItem = ({ item }) => {
+
+interface Product {
+  product_id?: number;
+  id?: number;
+  name?: string;
+  product_name?: string;
+  title?: string;
+  price?: number;
+  discountedPrice?: number;
+  image_url?: string;
+  image?: string;
+  category_id?: number;
+  category_name?: string;
+  description?: string;
+  reviews?: number;
+  stock_quantity?: number | null;
+  [key: string]: any; // For any additional properties
+}
+
+const ProductItem = ({ item }:Product) => {
     const { addToCart } = useAppContext();
   // Use the destructuring assignment for convenience and fallback values
   const imageUrl = item.image_url || item.image || '/images/default_image.png';
@@ -23,7 +42,7 @@ const ProductItem = ({ item }) => {
   const { openModal, setModalContent } = useModalContext(); 
 
   // Function to open the modal and pass the current product data
-  const handleQuickView = (e) => {
+  const handleQuickView = (e: React.MouseEvent<HTMLElement>) => {
     // Stop event propagation if this is a button or a clickable element
     // to prevent any parent click handlers (like navigation) from firing.
     if (e && e.preventDefault) {

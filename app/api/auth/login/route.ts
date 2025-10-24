@@ -2,12 +2,13 @@
 // FILE: app/api/auth/login/route.js
 // User login
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db';
+import type { RowDataPacket } from 'mysql2';
 
-export async function POST(request) {
+export async function POST(request:NextRequest) {
   try {
     const { email, password } = await request.json();
 
@@ -20,7 +21,7 @@ export async function POST(request) {
     }
 
     // Find user
-    const [users] = await pool.query(
+    const [users] = await pool.query<RowDataPacket[]>(
   `SELECT customer_id, first_name, last_name, email, phone, created_at, updated_at, password_hash, is_active
    FROM customers
    WHERE email = ? AND is_active = TRUE`,

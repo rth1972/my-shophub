@@ -1,11 +1,11 @@
 // ============================================
-// FILE: app/api/cart/update/route.js
+// FILE: app/api/cart/update/route.ts
 // Update cart item quantity
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
 
-export async function PUT(request) {
+export async function PUT(request: NextRequest) {
   try {
     const { customer_id, product_id, quantity } = await request.json();
 

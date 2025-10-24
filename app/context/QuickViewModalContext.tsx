@@ -1,5 +1,5 @@
 "use client"
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState, useMemo, ReactNode } from "react";
 
 // 💡 A type alias for product content is helpful, even if it's 'any' for now.
 // Replace 'any' with your actual Product type if you have one.
@@ -25,7 +25,7 @@ export const useModalContext = () => {
 };
 
 // 💡 Renamed to QuickViewModalProvider for clarity/consistency
-export const QuickViewModalProvider = ({ children }) => { 
+export const QuickViewModalProvider = ({ children }: { children: ReactNode }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // 3. Define state for the actual product content
   const [modalContent, setModalContent] = useState<ProductContent>(null); 

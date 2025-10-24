@@ -29,7 +29,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-   
   return (
     <html lang="en">
       <body
@@ -37,15 +36,15 @@ export default function RootLayout({
       >
         <AppProvider>
           <Toaster position="top-right" />
-          <Header  />
+          <Header />
 
           <QuickViewModalProvider>
             {children}
             <QuickViewModal />
           </QuickViewModalProvider>
-          <Footer  />
+          <Footer />
         </AppProvider>
-        <ScrollToTop  />
+        <ScrollToTop />
       </body>
     </html>
   );

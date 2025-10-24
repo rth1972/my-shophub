@@ -1,11 +1,23 @@
 // ============================================
-// FILE: app/api/cart/route.js
+// FILE: app/api/cart/route.ts
 // Get cart items for a customer
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
 
-export async function GET(request) {
+interface CartItem {
+  cart_id: number;
+  customer_id: string;
+  product_id: string;
+  quantity: number;
+  product_name: string;
+  price: number;
+  image_url: string;
+  stock_quantity: number;
+  category_name: string;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customer_id');
@@ -17,7 +29,7 @@ export async function GET(request) {
       );
     }
 
-    const [cart] = await pool.query(
+    const [rawRows] = await pool.query(
       `SELECT c.*, p.product_name, p.price, p.image_url, p.stock_quantity, cat.category_name
        FROM cart c
        JOIN products p ON c.product_id = p.product_id
@@ -25,6 +37,8 @@ export async function GET(request) {
        WHERE c.customer_id = ?`,
       [customerId]
     );
+
+    const cart = rawRows as CartItem[];
 
     return NextResponse.json({ cart });
   } catch (error) {

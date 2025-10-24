@@ -2,12 +2,12 @@
 // FILE: app/api/admin/auth/login/route.js
 // Admin login API
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 const ADMIN_EMAIL = 'robintehofstee@gmail.com';
 const ADMIN_PASSWORD = 'welkom';
 
-export async function POST(request) {
+export async function POST(request:NextRequest) {
   try {
     const { email, password } = await request.json();
 

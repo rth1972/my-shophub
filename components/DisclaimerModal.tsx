@@ -1,10 +1,11 @@
 'use client'
+import React from 'react';
 import { AlertTriangle, HandCoins } from 'lucide-react';
 import { motion } from "framer-motion";
 import Portal from "./Portal";
 
 interface WaitlistModalProps {
-  text: string;
+ text: React.ReactNode;
   onClose: () => void;
 }
 const DisclaimerModal = ({ onClose,text }: WaitlistModalProps) => {

@@ -3,8 +3,6 @@ import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import Hero from '@/components/Hero';
 import Categories from '@/components/Categories';
-import CheckoutPage from '@/components/CheckoutPage';
-import OrdersPage from '@/components/OrdersPage';
 import NewArrival from '@/components/NewArrivals';
 import PromoBanner from '@/components/PromoBanner';
 import DisclaimerModal from '@/components/DisclaimerModal';
@@ -41,21 +39,6 @@ export default function Home() {
     getCartTotal,
   } = useAppContext();
 
-  if (showOrders) {
-    return <OrdersPage orders={orders} onBack={() => setShowOrders(false)} />;
-  }
-
-  if (isCheckout) {
-    return (
-      <CheckoutPage
-        cart={cart}
-        total={getCartTotal()}
-        onBack={() => setIsCheckout(false)}
-        onSubmitOrder={handleSubmitOrder}
-        loading={loading}
-      />
-    );
-  }
 const [showModal, setShowModal] = useState(false);
 
 const disclaimerText = (
@@ -85,8 +68,8 @@ const disclaimerText = (
         />
       )}
       <Hero />
-      <Categories categories={categories} />
-      <NewArrival onAddToCart={addToCart} products={filteredProducts} />
+      <Categories  />
+      <NewArrival onAddToCart={addToCart} />
       <PromoBanner />
     </div>
   );

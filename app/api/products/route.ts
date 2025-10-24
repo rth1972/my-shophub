@@ -2,10 +2,11 @@
 // FILE: app/api/products/route.js
 // Get all products
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
+import type { RowDataPacket } from 'mysql2';
 
-export async function GET(request) {
+export async function GET(request:NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
@@ -31,7 +32,7 @@ export async function GET(request) {
 
     query += ' ORDER BY p.product_name';
 
-    const [products] = await pool.query(query, params);
+    const [products] = await pool.query<RowDataPacket[]>(query, params);
 
     return NextResponse.json({ products });
   } catch (error) {

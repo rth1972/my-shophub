@@ -2,16 +2,17 @@
 // FILE: app/api/products/random/route.js
 // Get random products with optional limit
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import pool from '@/lib/db';
+import type { RowDataPacket } from 'mysql2';
 
-export async function GET(req) {
+export async function GET(req:NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const limitParam = searchParams.get('limit');
-    const limit = Math.max(1, Math.min(parseInt(limitParam) || 1, 50)); // Clamp between 1 and 50
+const limit = Math.max(1, Math.min(parseInt(limitParam || '1', 10), 50));
 
-    const [products] = await pool.query(
+    const [products] = await pool.query<RowDataPacket[]>(
       `
       SELECT p.*, c.category_name 
       FROM products p 

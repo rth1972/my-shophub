@@ -2,17 +2,18 @@
 // UPDATED: app/api/admin/products/[id]/route.js
 // Add authentication check
 // ============================================
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import pool from '@/lib/db';
 import { checkAdminAuth } from '@/lib/adminAuth';
 
-export async function PUT(request, { params }) {
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const data = await request.json();
     const { product_name, description, category_id, price, cost_price, stock_quantity, sku, image_url } = data;
 
@@ -31,13 +32,14 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   if (!checkAdminAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
     await pool.query('DELETE FROM products WHERE product_id = ?', [id]);
     return NextResponse.json({ message: 'Product deleted' });
   } catch (error) {
